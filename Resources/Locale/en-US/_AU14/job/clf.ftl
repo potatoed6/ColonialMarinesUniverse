@@ -23,3 +23,10 @@ au14-job-name-clfcellleader = CLF Cell Leader
 au14-job-description-clfcellleader = Lead your men and take over the colony. Push out, capture and/or kill any government forces that don't surrender. Convince the local civilians to join your cause.
 au14-job-prefix-clfcellleader = CIV
 AU14JobCLFCellLeader = CLF Cell Leader
+
+au14-job-name-clfcellguerilla = CLF Cell Guerilla Fighter
+au14-job-description-clfcellguerilla = You were summoned by your brothers and sisters to help them fight opressors. Viva la revolucion!
+
+au14-job-name-clfcellphysician = CLF Cell Physician
+
+au14-clfcell-rules = You are a CLF member! You do not know what happened earlier in the round! You are friendly to CLF, hostile to GOVFOR and neutral to civilians.

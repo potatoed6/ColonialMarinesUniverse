@@ -1,0 +1,160 @@
+- type: job
+  parent: CMJobBase
+  id: AU14JobCLFCellGuerillaBase
+  name: au14-job-name-clfcellguerilla
+  description: au14-job-description-clfcellguerilla
+  playTimeTracker: AU14JobCLFCellGuerilla
+  basePlaytimeTracker: true
+  hidden: true
+
+- type: job
+  parent: AU14JobCLFCellGuerillaBase
+  id: AU14JobCLFCellGuerilla
+  name: au14-job-name-clfguerilla
+  description: au14-job-description-clfguerilla
+  setPreference: true
+  ranks:
+    RMCRankCivilian: []
+  startingGear: AU14GearCLFCellGuerilla
+  icon: "CMJobIconEmpty"
+  requireAdminNotify: false
+  joinNotifyCrew: false
+  supervisors: au14-job-supervisors-clflrs
+  accessGroups:
+  - Colonist
+  roleWeight: 0.25
+  special:
+  - !type:AddComponentSpecial
+    components:
+    - type: NpcFactionMember
+      factions:
+      - CLF
+    - type: Skills
+      skills:
+        RMCSkillEndurance: 1
+        RMCSkillFirearms: 2
+        RMCSkillConstruction: 2
+        RMCSkillEngineer: 3
+        RMCSkillFireman: 1
+        RMCSkillVehicles: 1
+        RMCSkillPolice: 1
+    - type: JobPrefix
+      prefix: au14-job-prefix-clfguerilla
+    - type: TacticalMapIcon
+      icon:
+        sprite: _RMC14/Interface/map_blips.rsi
+        state: synth
+  hidden: true
+
+- type: job
+  parent: AU14JobCLFCellGuerillaBase
+  id: AU14JobCLFCellGuerillaAlt
+  name: au14-job-name-clfguerilla
+  description: au14-job-description-clfguerilla
+  setPreference: true
+  ranks:
+    RMCRankCivilian: []
+  startingGear: AU14GearCLFGuerillaAlt
+  icon: "CMJobIconEmpty"
+  requireAdminNotify: false
+  joinNotifyCrew: false
+  supervisors: au14-job-supervisors-clflrs
+  accessGroups:
+  - Colonist
+  roleWeight: 0.25
+  special:
+  - !type:AddComponentSpecial
+    components:
+    - type: NpcFactionMember
+      factions:
+      - CLF
+    - type: Skills
+      skills:
+        RMCSkillEndurance: 1
+        RMCSkillFirearms: 2
+        RMCSkillConstruction: 2
+        RMCSkillEngineer: 3
+        RMCSkillFireman: 1
+        RMCSkillVehicles: 1
+        RMCSkillPolice: 1
+    - type: JobPrefix
+      prefix: au14-job-prefix-clfguerilla
+    - type: TacticalMapIcon
+      icon:
+        sprite: _RMC14/Interface/map_blips.rsi
+        state: synth
+  hidden: true
+
+- type: entity
+  parent: AU14BaseMobSpeciesOrganicCLF
+  id: AU14JobCLFGuerilla
+  name: CLF Cell Guerilla
+  components:
+  - type: Threat
+  - type: GhostTakeoverAvailable
+  - type: GhostRoleApplySpecial
+  - type: GhostRole
+    makeSentient: true
+    allowSpeech: true
+    allowMovement: true
+    name: au14-job-name-clfcellguerilla
+    description: au14-job-description-clfcellguerilla
+    reregister: false
+    job: AU14JobCLFGuerilla
+    raffle:
+      settings: short
+    rules: au14-clfcell-rules
+
+- type: entity
+  parent: AU14BaseMobSpeciesOrganicCLF
+  id: AU14JobCLFGuerillaAlt
+  name: CLF Cell Guerilla
+  components:
+  - type: Threat
+  - type: GhostTakeoverAvailable
+  - type: GhostRoleApplySpecial
+  - type: GhostRole
+    makeSentient: true
+    allowSpeech: true
+    allowMovement: true
+    name: au14-job-name-clfcellguerilla
+    description: au14-job-description-clfcellguerilla
+    reregister: false
+    job: AU14JobCLFGuerilla
+    raffle:
+      settings: short
+    rules: au14-clfcell-rules
+
+- type: startingGear
+  id: AU14GearCLFCellGuerilla
+  equipment:
+    jumpsuit: AU14CivilianWorkwearPink
+    outerClothing: RMCCoatMilitia
+    shoes: RMCBootsPMCFilled
+    head: RMCHeadMilitiaHood
+    belt: AU14BeltHolsterPistolUPPFull
+    pocket1: AU14PouchIFAKFill
+    pocket2: RMCFlashlight
+    back: AU14SlingSatchelBlackCLFFull
+    ears: AU14CLFHeadset
+    suitstorage: RMCWeaponBoltActionRifle
+    neck: RMCCLFArmband
+
+- type: startingGear
+  id: AU14GearCLFCellGuerillaAlt
+  equipment:
+    jumpsuit: AU14CivilianWorkwearPink
+    outerClothing: RMCCoatMilitia
+    shoes: RMCBootsPMCFilled
+    head: RMCHeadMilitiaHood
+    belt: AU14BeltHolsterPistolRMCFullL165A1
+    pocket1: AU14PouchToolsFilledComtech
+    pocket2: RMCFlashlight
+    back: AU14SlingSatchelBlueCLFFull
+    ears: AU14CLFHeadset
+    suitstorage: CMBaseWeaponSMG
+    neck: RMCCLFArmband
+
+- type: playTimeTracker
+  id: AU14JobCLFCellGuerilla
+  isHumanoid: true

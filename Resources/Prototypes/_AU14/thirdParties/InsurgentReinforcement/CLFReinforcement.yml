@@ -1,0 +1,23 @@
+- type: partySpawn
+  id: CLFReinforcementSpawn
+  leadersToSpawn:
+  gruntsToSpawn:
+    AU14JobCLFCellGuerilla: 1
+    AU14JobCLFCellGuerillaAlt: 1
+    AU14JobCLFCellPhysician: 1
+  scalewithpop: false
+  spawnTogether: true
+
+- type: auThirdParty
+  id: CLFCellReinforcementsIntel
+  partyspawn: CLFReinforcementSpawn
+  blacklistedgamemodes: 
+    - DistressSignal
+    - forceonforce
+    - colonyfall
+  entrymethod: ground
+  weight: 20
+  minplayers: 0
+  maxplayers: 400
+  GhostsNeeded: 3
+  roundstart: false
