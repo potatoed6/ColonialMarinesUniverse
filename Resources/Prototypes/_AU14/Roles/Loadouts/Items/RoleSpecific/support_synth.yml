@@ -1,0 +1,5 @@
+- type: loadout
+  id: MedicAuxSynthAU14
+  cost: 0
+  equipment:
+    id: AU14IDCardGOVFORAuxSupportSynth

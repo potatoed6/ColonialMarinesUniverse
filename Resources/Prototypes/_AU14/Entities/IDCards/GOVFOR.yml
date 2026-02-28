@@ -108,6 +108,16 @@
   name: support synthetic ID card
   components:
   - type: PresetIdCard
+    job: AU14JobGOVFORAuxSupportSynthMedic
+  - type: ItemIFF
+    faction: GOVFOR
+
+- type: entity
+  parent: CMIDCardBase
+  id: AU14IDCardGOVFORAuxSupportSynthMedic
+  name: medic support synthetic ID card
+  components:
+  - type: PresetIdCard
     job: AU14JobGOVFORAuxSupportSynth
   - type: ItemIFF
     faction: GOVFOR

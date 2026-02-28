@@ -74,6 +74,12 @@
     - type: Synth
   hidden: false
 
+- type: job
+  parent: AU14JobGOVFORAuxSupportSynth
+  id: AU14JobGOVFORAuxSupportSynthMedic
+  name: Medic Support Synthetic
+
+
 - type: startingGear
   id: AU14GearGOVFORAuxSupportSynth
   equipment:

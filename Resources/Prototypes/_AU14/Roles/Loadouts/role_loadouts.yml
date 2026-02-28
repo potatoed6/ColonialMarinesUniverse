@@ -1,0 +1,6 @@
+#AuxSynth
+- type: roleLoadout
+  id: AU14JobGOVFORAuxSupportSynth
+  points: 7
+  groups:
+  - SupportAuxSupportSynthSpecificAU14
