@@ -8,53 +8,6 @@ using Robust.Shared.Utility;
 namespace Content.Shared.Chat
 {
     [Serializable, NetSerializable]
-    public enum ChatDisplayKind : byte
-    {
-        Unknown,
-        Local,
-        Whisper,
-        Emote,
-        Radio,
-        LOOC,
-        OOC,
-        Dead,
-        Admin,
-        Mentor,
-        System,
-        Combat
-    }
-
-    [Serializable, NetSerializable]
-    public sealed class ChatDisplayMetadata
-    {
-        public ChatDisplayKind Kind;
-        public string? SenderName;
-        public string? SenderPrefix;
-        public string? Verb;
-        public string? ChannelLabel;
-        public bool QuoteBody;
-        public Color? AccentColor;
-
-        public ChatDisplayMetadata(
-            ChatDisplayKind kind,
-            string? senderName = null,
-            string? senderPrefix = null,
-            string? verb = null,
-            string? channelLabel = null,
-            bool quoteBody = false,
-            Color? accentColor = null)
-        {
-            Kind = kind;
-            SenderName = senderName;
-            SenderPrefix = senderPrefix;
-            Verb = verb;
-            ChannelLabel = channelLabel;
-            QuoteBody = quoteBody;
-            AccentColor = accentColor;
-        }
-    }
-
-    [Serializable, NetSerializable]
     public sealed class ChatMessage
     {
         public ChatChannel Channel;
@@ -84,17 +37,21 @@ namespace Content.Shared.Chat
         public Color? MessageColorOverride;
         public string? AudioPath;
         public float AudioVolume;
-        public ChatDisplayMetadata? Display;
 
         // RMC14
         public bool HidePopup;
+        public bool UseEmoteSpeechBubble;
         public string? SpeechStyleClass;
         public bool RepeatCheckSender;
+        public string? LanguageIcon;
+        // RMC14
 
         [NonSerialized]
         public bool Read;
 
-        public ChatMessage(ChatChannel channel, string message, string wrappedMessage, NetEntity source, int? senderKey, bool hideChat = false, Color? colorOverride = null, string? audioPath = null, float audioVolume = 0, bool hidePopup = false, string? speechStyleClass = null, bool repeatCheckSender = true, ChatDisplayMetadata? display = null)
+        // RMC14
+        public ChatMessage(ChatChannel channel, string message, string wrappedMessage, NetEntity source, int? senderKey, bool hideChat = false, Color? colorOverride = null, string? audioPath = null, float audioVolume = 0, bool hidePopup = false, bool useEmoteSpeechBubble = false, string? speechStyleClass = null, bool repeatCheckSender = true,
+            string? languageIcon = null)
         {
             Channel = channel;
             Message = message;
@@ -106,67 +63,12 @@ namespace Content.Shared.Chat
             AudioPath = audioPath;
             AudioVolume = audioVolume;
             HidePopup = hidePopup;
+            UseEmoteSpeechBubble = useEmoteSpeechBubble;
             SpeechStyleClass = speechStyleClass;
             RepeatCheckSender = repeatCheckSender;
-            Display = display ?? CreateDefaultDisplay(channel);
+            LanguageIcon = languageIcon;
         }
-
-        // CMU14
-        public ChatMessage(ChatMessage copyFrom)
-        {
-            Channel = copyFrom.Channel;
-            Message = copyFrom.Message;
-            WrappedMessage = copyFrom.WrappedMessage;
-            SenderEntity = copyFrom.SenderEntity;
-            SenderKey = copyFrom.SenderKey;
-            HideChat = copyFrom.HideChat;
-            MessageColorOverride = copyFrom.MessageColorOverride;
-            AudioPath = copyFrom.AudioPath;
-            AudioVolume = copyFrom.AudioVolume;
-            Display = copyFrom.Display;
-            HidePopup = copyFrom.HidePopup;
-            SpeechStyleClass = copyFrom.SpeechStyleClass;
-            RepeatCheckSender = copyFrom.RepeatCheckSender;
-            Read = copyFrom.Read;
-        }
-        // CMU14
-
-        private static ChatDisplayMetadata CreateDefaultDisplay(ChatChannel channel)
-        {
-            return new ChatDisplayMetadata(channel switch
-            {
-                ChatChannel.Local => ChatDisplayKind.Local,
-                ChatChannel.Whisper => ChatDisplayKind.Whisper,
-                ChatChannel.Emotes => ChatDisplayKind.Emote,
-                ChatChannel.Radio => ChatDisplayKind.Radio,
-                ChatChannel.LOOC => ChatDisplayKind.LOOC,
-                ChatChannel.OOC => ChatDisplayKind.OOC,
-                ChatChannel.Dead => ChatDisplayKind.Dead,
-                ChatChannel.Admin or ChatChannel.AdminAlert or ChatChannel.AdminChat => ChatDisplayKind.Admin,
-                ChatChannel.MentorChat => ChatDisplayKind.Mentor,
-                ChatChannel.Server or ChatChannel.Notifications => ChatDisplayKind.System,
-                ChatChannel.Damage or ChatChannel.Visual => ChatDisplayKind.Combat,
-                _ => ChatDisplayKind.Unknown
-            }, channelLabel: channel switch
-            {
-                ChatChannel.Local => "SAY",
-                ChatChannel.Whisper => "WHSP",
-                ChatChannel.Emotes => "ME",
-                ChatChannel.Radio => "RAD",
-                ChatChannel.LOOC => "LOOC",
-                ChatChannel.OOC => "OOC",
-                ChatChannel.Dead => "DEAD",
-                ChatChannel.Admin => "ADMIN",
-                ChatChannel.AdminAlert => "ALERT",
-                ChatChannel.AdminChat => "ASAY",
-                ChatChannel.MentorChat => "MENTOR",
-                ChatChannel.Notifications => "NOTE",
-                ChatChannel.Server => "SYS",
-                ChatChannel.Damage => "DMG",
-                ChatChannel.Visual => "VIS",
-                _ => "CHAT"
-            });
-        }
+        // RMC14
     }
 
     /// <summary>

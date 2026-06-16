@@ -22,36 +22,21 @@ public sealed partial class CMChatSystem : SharedCMChatSystem
         Subs.CVar(_config, RMCCVars.RMCChatRepeatHistory, v => _repeatHistory = v, true);
     }
 
-    public bool TryRepetition(Queue<RepeatedMessage> repeatQueue, NetEntity sender, string unwrapped, ChatChannel channel, bool repeatCheckSender)
+    public bool TryRepetition(
+        ChatBox chat,
+        OutputPanel contents,
+        FormattedMessage message,
+        NetEntity sender,
+        string unwrapped,
+        ChatChannel channel,
+        bool repeatCheckSender,
+        string? languageIcon)
     {
         foreach (var old in repeatQueue)
         {
             if (!old.Message.Equals(unwrapped) ||
-                old.Channel != channel)
-            {
-                continue;
-            }
-
-            if (repeatCheckSender &&
-                !old.SenderEntity.Equals(sender))
-            {
-                continue;
-            }
-
-            old.Count++;
-            old.Row?.SetRepeatCount(old.Count);
-            return true;
-        }
-
-        return false;
-    }
-
-    public bool TryLegacyRepetition(Queue<RepeatedMessage> repeatQueue, OutputPanel contents, FormattedMessage message, NetEntity sender, string unwrapped, ChatChannel channel, bool repeatCheckSender)
-    {
-        foreach (var old in repeatQueue)
-        {
-            if (!old.Message.Equals(unwrapped) ||
-                old.Channel != channel)
+                old.Channel != channel ||
+                old.LanguageIcon != languageIcon)
             {
                 continue;
             }
@@ -66,32 +51,22 @@ public sealed partial class CMChatSystem : SharedCMChatSystem
             old.Count++;
             copy.AddMarkupPermissive($" [color=red]x{old.Count}[/color]");
             contents.SetMessage(old.Index, copy);
-            return true;
+            repeated = true;
+            break;
         }
 
-        return false;
-    }
-
-    public void TrackRepetition(Queue<RepeatedMessage> repeatQueue, ChatMessageRow row, FormattedMessage message, NetEntity sender, string unwrapped, ChatChannel channel)
-    {
-        repeatQueue.Enqueue(new RepeatedMessage(row, message, sender, unwrapped, channel));
-        TrimRepeatQueue(repeatQueue);
-    }
-
-    public void TrackLegacyRepetition(Queue<RepeatedMessage> repeatQueue, OutputPanel contents, FormattedMessage message, NetEntity sender, string unwrapped, ChatChannel channel)
-    {
-        repeatQueue.Enqueue(new RepeatedMessage(contents.EntryCount, message, sender, unwrapped, channel));
-        TrimRepeatQueue(repeatQueue);
-    }
-
-    private void TrimRepeatQueue(Queue<RepeatedMessage> repeatQueue)
-    {
-        if (_repeatHistory <= 0)
-            return;
-
-        while (repeatQueue.Count > _repeatHistory)
+        if (!repeated)
         {
-            repeatQueue.Dequeue();
+            chat.RepeatQueue.Enqueue(new RepeatedMessage(contents.EntryCount, message, sender, unwrapped, channel, languageIcon));
+            if (_repeatHistory > 0)
+            {
+                while (chat.RepeatQueue.Count > _repeatHistory)
+                {
+                    chat.RepeatQueue.Dequeue();
+                }
+            }
         }
+
+        return repeated;
     }
 }

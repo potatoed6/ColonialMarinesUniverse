@@ -1,8 +1,6 @@
-using System;
-using System.Linq;
+// RMC14
 using Content.Client._RMC14.Chat;
-using Content.Client.Stylesheets;
-using Content.Client.UserInterface.Systems.Chat;
+// RMC14
 using Content.Client.UserInterface.Systems.Chat.Controls;
 using Content.Shared.CCVar;
 using Content.Shared.Chat;
@@ -90,10 +88,10 @@ public partial class ChatBox : UIWidget
     }
 
     // RMC14
-    private readonly Queue<RepeatedMessage> _primaryRepeatQueue = new();
-    private readonly Queue<RepeatedMessage> _secondaryRepeatQueue = new();
-    private readonly Queue<RepeatedMessage> _legacyRepeatQueue = new();
-    private readonly HashSet<string> _whitelist = ["mono", "scramble", "bolditalic", "bold", "bullet", "color", "font", "head", "italic"];
+    public readonly Queue<RepeatedMessage> RepeatQueue = new();
+    // RMC14
+    private readonly HashSet<string> _whitelist = ["mono", "scramble", "bolditalic", "bold", "bullet", "color", "font", "head", "italic", "langicon"];
+    // RMC14
 
     public ChatBox()
     {
@@ -209,8 +207,9 @@ public partial class ChatBox : UIWidget
         if (IsMessageVisibleInActiveTab(msg))
             AddLine(msg, Contents, _primaryRepeatQueue);
 
-        if (IsMessageVisibleInSecondaryTab(msg))
-            AddLine(msg, SecondaryContents, _secondaryRepeatQueue);
+        // RMC14
+        AddLine(msg.WrappedMessage, color, msg.SenderEntity, msg.Message, msg.Channel, msg.RepeatCheckSender, msg.LanguageIcon);
+        // RMC14
     }
 
     private void OnHighlightsUpdated(string highlights)
@@ -1145,128 +1144,32 @@ public partial class ChatBox : UIWidget
         LegacyContents.AddMessage(formatted);
     }
 
-    public void AddLine(string message, Color color, NetEntity sender, string unwrapped, ChatChannel channel, bool repeatCheckSender)
-    {
-        var msg = new ChatMessage(
-            channel,
-            unwrapped,
-            message,
-            sender,
-            null,
-            colorOverride: color,
-            repeatCheckSender: repeatCheckSender,
-            display: new ChatDisplayMetadata(ChatDisplayKind.System, channelLabel: "SYS"));
-
-        AddLine(msg);
-    }
-
-    private FormattedMessage CreateFormattedMessage(ChatMessage message, Color color, ChatStyleSettings? style = null)
-    {
-        var markup = StripDuplicateChannelPrefix(message.WrappedMessage, message);
-        markup = _colorWholeMessage
-            ? ChatUserSettings.ApplyStyleMarkup(markup, style, ChatUserSettings.DefaultFontSize)
-            : ChatUserSettings.ApplyFontMarkup(RemoveOuterColorMarkup(markup), style, ChatUserSettings.DefaultFontSize);
-
-        var formatted = new FormattedMessage(3);
-        if (_colorWholeMessage)
-            formatted.PushColor(color);
-
-        formatted.AddMarkupOrThrow(markup);
-
-        if (_colorWholeMessage)
-            formatted.Pop();
-
-        return FilterProblematicTags(formatted);
-    }
-
-    private static string RemoveOuterColorMarkup(string markup)
-    {
-        if (!markup.StartsWith("[color=", StringComparison.OrdinalIgnoreCase) ||
-            !markup.EndsWith("[/color]", StringComparison.OrdinalIgnoreCase))
-        {
-            return markup;
-        }
-
-        var openEnd = markup.IndexOf(']');
-        if (openEnd < 0)
-            return markup;
-
-        return markup.Substring(openEnd + 1, markup.Length - openEnd - "[/color]".Length - 1);
-    }
-
-    private FormattedMessage CreateLegacyFormattedMessage(ChatMessage message, Color color)
+    // RMC14
+    public void AddLine(
+        string message,
+        Color color,
+        NetEntity sender,
+        string unwrapped,
+        ChatChannel channel,
+        bool repeatCheckSender,
+        string? languageIcon = null)
+    // RMC14
     {
         var formatted = new FormattedMessage(3);
         formatted.PushColor(color);
-        formatted.AddMarkupOrThrow(message.WrappedMessage);
+        // RMC14
+        if (!string.IsNullOrWhiteSpace(languageIcon))
+            formatted.AddMarkupOrThrow($"[langicon language=\"{FormattedMessage.EscapeText(languageIcon)}\"][/langicon]");
+        // RMC14
+        formatted.AddMarkupOrThrow(message);
         formatted.Pop();
 
-        return FilterProblematicTags(formatted);
-    }
+        // RMC14
+        formatted = FilterProblematicTags(formatted);
+        if (_entManager.SystemOrNull<CMChatSystem>()?.TryRepetition(this, Contents, formatted, sender, unwrapped, channel, repeatCheckSender, languageIcon) ?? false)
+            return;
 
-    private static string StripDuplicateChannelPrefix(string markup, ChatMessage message)
-    {
-        if (!string.IsNullOrWhiteSpace(message.Display?.ChannelLabel))
-        {
-            var label = message.Display.ChannelLabel.ToUpperInvariant();
-            markup = StripVisiblePrefix(markup, $"{label}: ");
-            markup = StripVisiblePrefix(markup, $"{label} ");
-
-            if (message.Channel == ChatChannel.Radio)
-            {
-                markup = StripVisiblePrefix(markup, $@"\[{message.Display.ChannelLabel}\] ");
-                markup = StripVisiblePrefix(markup, $"[{message.Display.ChannelLabel}] ");
-            }
-        }
-
-        switch (message.Channel)
-        {
-            case ChatChannel.OOC:
-                return StripVisiblePrefix(markup, "OOC: ");
-            case ChatChannel.LOOC:
-                return StripVisiblePrefix(markup, "LOOC: ");
-            case ChatChannel.Dead:
-                return StripVisiblePrefix(markup, "DEAD: ");
-            case ChatChannel.Admin:
-            case ChatChannel.AdminAlert:
-            case ChatChannel.AdminChat:
-                markup = StripVisiblePrefix(markup, "ADMIN: ");
-                return StripVisiblePrefix(markup, "ASAY: ");
-            case ChatChannel.MentorChat:
-                return StripVisiblePrefix(markup, "MENTOR: ");
-            default:
-                return markup;
-        }
-    }
-
-    private static string StripVisiblePrefix(string markup, string prefix)
-    {
-        var index = GetVisibleTextStart(markup);
-        if (index < 0 || index + prefix.Length > markup.Length)
-            return markup;
-
-        if (!markup.Substring(index, prefix.Length).Equals(prefix, StringComparison.OrdinalIgnoreCase))
-            return markup;
-
-        return markup.Remove(index, prefix.Length);
-    }
-
-    private static int GetVisibleTextStart(string markup)
-    {
-        var index = 0;
-        while (index < markup.Length && markup[index] == '[')
-        {
-            if (index + 1 < markup.Length && markup[index + 1] == '/')
-                break;
-
-            var end = markup.IndexOf(']', index);
-            if (end < 0)
-                break;
-
-            index = end + 1;
-        }
-
-        return index;
+        Contents.AddMessage(formatted);
     }
 
     // RMC14
@@ -1280,6 +1183,7 @@ public partial class ChatBox : UIWidget
         }
         return output;
     }
+    // RMC14
 
     public void Focus(ChatSelectChannel? channel = null)
     {
