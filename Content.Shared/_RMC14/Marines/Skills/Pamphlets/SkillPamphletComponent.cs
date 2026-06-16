@@ -49,6 +49,10 @@ public sealed partial class SkillPamphletComponent : Component
 
     [DataRecord]
     [Serializable, NetSerializable]
+    public readonly record struct PamphletWhitelist(string Popup, EntityWhitelist Restrictions);
+
+    [DataRecord]
+    [Serializable, NetSerializable]
     public readonly partial record struct PamphletWhitelist(string Popup, EntityWhitelist Restrictions);
 
     [DataRecord]
