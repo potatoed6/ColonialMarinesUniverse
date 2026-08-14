@@ -193,6 +193,13 @@
   name: TWE Royal Marine Commandos
   lorePrimer: AU14PrimerPlatoonRMC
   Allegiance: TWE
+  rankOverrides:
+    RMCRankLieutenantColonel:
+      rank: RMC_LieutenantColonel
+      chevron: AU14ChevronLieutenantColonelRMC
+    RMCRankMajor:
+      rank: RMC_Major
+      chevron: AU14ChevronMajorRMC
   languages:
     - Japanese
     - English

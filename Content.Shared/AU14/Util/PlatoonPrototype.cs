@@ -78,4 +78,12 @@ public sealed partial class PlatoonPrototype : IPrototype
 
     [DataField("techTree", required: false)]
     public string TechTree { get; private set; } = string.Empty;
+
+    [DataDefinition]
+    public sealed partial class PlatoonRankOverride
+    {
+        /// <summary>Swap the chevron insignia entity. Null to fall back to the job's own chevrons entry.</summary>
+        [DataField]
+        public EntProtoId? Chevron;
+    }
 }

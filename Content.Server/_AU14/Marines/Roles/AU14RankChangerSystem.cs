@@ -10,6 +10,7 @@ using Content.Shared.Inventory.Events;
 using Content.Shared.Roles;
 using Robust.Shared.Containers;
 using Robust.Shared.Prototypes;
+using Content.Shared._CMU14.Marines.Roles.Ranks;
 
 namespace Content.Server._AU14.Marines.Roles.Ranks;
 
@@ -29,7 +30,6 @@ public sealed partial class RankChangerSystem : EntitySystem
         SubscribeLocalEvent<RankChangerComponent, ComponentShutdown>(OnShutdown);
         SubscribeLocalEvent<RankChangerComponent, GotEquippedHandEvent>(OnEquippedHand);
         SubscribeLocalEvent<RankChangerComponent, GotUnequippedHandEvent>(OnUnequippedHand);
-
     }
 
     private void OnEquipped(Entity<RankChangerComponent> ent, ref GotEquippedEvent args)
@@ -50,15 +50,13 @@ public sealed partial class RankChangerSystem : EntitySystem
 
     public void ApplyRank(EntityUid wearer, RankChangerComponent comp)
     {
-        // Check inventory and accessory slots for any already-applied RankChanger
         if (IsAnyChevronActive(wearer, comp))
             return;
 
-        if (!_prototypes.TryIndex(comp.Rank, out var rankProto))
+        if (!TryResolveAndApply(wearer, comp.Rank, out var resolvedProto))
             return;
 
         comp.Applied = true;
-        _rank.SetRank(wearer, rankProto);
 
         var jobId = _rank.GetJobId(wearer);
         if (jobId != null
@@ -78,7 +76,6 @@ public sealed partial class RankChangerSystem : EntitySystem
         if (!TryComp<RankComponent>(wearer, out var rankComp) || rankComp.Rank != comp.Rank)
             return;
 
-        // Check if another chevron is present — apply that instead
         if (!HasComp<InventoryComponent>(wearer))
         {
             _rank.ReapplyJobRank(wearer);
@@ -91,10 +88,9 @@ public sealed partial class RankChangerSystem : EntitySystem
             // Check item itself
             if (TryComp<RankChangerComponent>(item, out var changer) && changer != comp)
             {
-                if (_prototypes.TryIndex(changer.Rank, out var otherProto))
+                if (TryResolveAndApply(wearer, changer.Rank, out _))
                 {
                     changer.Applied = true;
-                    _rank.SetRank(wearer, otherProto);
                     return;
                 }
             }
@@ -106,14 +102,11 @@ public sealed partial class RankChangerSystem : EntitySystem
                 foreach (var accessory in container.ContainedEntities)
                 {
                     if (TryComp<RankChangerComponent>(accessory, out var accessoryChanger)
-                        && accessoryChanger != comp)
+                        && accessoryChanger != comp
+                        && TryResolveAndApply(wearer, accessoryChanger.Rank, out _))
                     {
-                        if (_prototypes.TryIndex(accessoryChanger.Rank, out var otherProto))
-                        {
-                            accessoryChanger.Applied = true;
-                            _rank.SetRank(wearer, otherProto);
-                            return;
-                        }
+                        accessoryChanger.Applied = true;
+                        return;
                     }
                 }
             }
@@ -124,22 +117,34 @@ public sealed partial class RankChangerSystem : EntitySystem
         _marine.ClearMarineIcon(wearer);
     }
 
+    private bool TryResolveAndApply(EntityUid wearer, ProtoId<RankPrototype> baseRank, out RankPrototype resolvedProto)
+    {
+        resolvedProto = default!;
+
+        if (!_prototypes.TryIndex(baseRank, out var proto))
+            return false;
+
+        resolvedProto = proto;
+        _rank.SetRank(wearer, proto);
+
+        var changedEv = new MarineRankChangedEvent(baseRank, proto);
+        RaiseLocalEvent(wearer, ref changedEv);
+        return true;
+    }
+
     private bool IsAnyChevronActive(EntityUid wearer, RankChangerComponent excluded)
     {
-        // Check inventory slots
         if (!TryComp<InventoryComponent>(wearer, out var inventory))
             return false;
 
         var invSystem = EntityManager.System<InventorySystem>();
         foreach (var item in invSystem.GetHandOrInventoryEntities(wearer))
         {
-            // Check item itself
             if (TryComp<RankChangerComponent>(item, out var changer)
                 && changer != excluded
                 && changer.Applied)
                 return true;
 
-            // Check accessory slot on item
             if (TryComp<UniformAccessoryHolderComponent>(item, out var holder)
                 && _containers.TryGetContainer(item, holder.ContainerId, out var container))
             {

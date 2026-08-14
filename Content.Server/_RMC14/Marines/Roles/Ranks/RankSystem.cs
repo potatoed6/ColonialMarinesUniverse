@@ -4,6 +4,7 @@ using Content.Shared.Chat;
 using Content.Shared.GameTicking;
 using Content.Shared.Roles;
 using Robust.Shared.Prototypes;
+using Content.Shared._CMU14.Marines.Roles.Ranks;
 
 namespace Content.Server._RMC14.Marines.Roles.Ranks;
 
@@ -13,7 +14,6 @@ public sealed partial class RankSystem : SharedRankSystem
     [Dependency] private IPrototypeManager _prototypes = default!;
     [Dependency] private IEntityManager _entityManager = default!;
 
-    // Store mob -> (player, jobId, profile) on spawn so we can reapply later
     private readonly Dictionary<EntityUid, PlayerSpawnCompleteEvent> _spawnData = new();
 
     public override void Initialize()
@@ -47,7 +47,7 @@ public sealed partial class RankSystem : SharedRankSystem
 
     public void ReapplyJobRank(EntityUid mob)
     {
-        if (_spawnData.TryGetValue(mob, out var ev))
+        if (_spawnData.ContainsKey(mob))
             ApplyJobRank(mob);
     }
 
@@ -75,23 +75,26 @@ public sealed partial class RankSystem : SharedRankSystem
         {
             var failed = false;
 
-            if (_prototypes.TryIndex<RankPrototype>(rank.Key, out var rankPrototype) && rankPrototype != null)
-            {
-                if (rank.Value != null)
-                {
-                    foreach (var req in rank.Value)
-                    {
-                        if (!req.Check(_entityManager, _prototypes, ev.Profile, playTimes, out _))
-                            failed = true;
-                    }
-                }
+            if (!_prototypes.TryIndex<RankPrototype>(rank.Key, out var rankPrototype) || rankPrototype == null)
+                continue;
 
-                if (!failed)
+            if (rank.Value != null)
+            {
+                foreach (var req in rank.Value)
                 {
-                    SetRank(mob, rankPrototype);
-                    return;
+                    if (!req.Check(_entityManager, _prototypes, ev.Profile, playTimes, out _))
+                        failed = true;
                 }
             }
+
+            if (failed)
+                continue;
+
+            SetRank(mob, rankPrototype);
+
+            var changedEv = new MarineRankChangedEvent(rank.Key, rankPrototype);
+            RaiseLocalEvent(mob, ref changedEv);
+            return;
         }
     }
 }
