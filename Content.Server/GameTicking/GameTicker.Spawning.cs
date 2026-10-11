@@ -99,6 +99,11 @@ namespace Content.Server.GameTicking
                 thirdPartyMembers);
         }
 
+        // CMU14 method: rolled survivors have no body until they are spawned from the survivor party
+        private bool IsSurvivorJob(ProtoId<JobPrototype>? job)
+            => (job == AuThirdPartyLeaderJob || job == AuThirdPartyMemberJob)
+                && _auRoundSystem.SelectedThirdParties.Any(party => party.RoundStart && party.AnnounceAsSurvivors);
+
         /// <summary>
         ///     Determines which platoon a job belongs to based on its ID.
         ///     Returns null if the job doesn't belong to a specific platoon.
