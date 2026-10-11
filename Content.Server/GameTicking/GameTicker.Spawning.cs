@@ -437,6 +437,13 @@ namespace Content.Server.GameTicking
                 if (job != null && (job == "AU14JobThreatLeader" || job == "AU14JobThreatMember"))
                     continue;
 
+                // CMU14: rolled survivors are spawned by SurvivorSetupSystem after they choose
+                if (job == AuThirdPartyLeaderJob || job == AuThirdPartyMemberJob)
+                {
+                    if (_auRoundSystem.SelectedThirdParties.Any(party => party.RoundStart && party.AnnounceAsSurvivors))
+                        continue;
+                }
+
                 if (job == null)
                     continue;
 
@@ -473,7 +480,7 @@ namespace Content.Server.GameTicking
                     Log.Error($"SpawnRoundStartThirdParties threw - round will continue without survivors. {survivorEx}");
                 }
             }
-            
+
             switch (threatVotePrepared)
             {
                 // Defensive: same rationale as the SpawnThreatAtRoundStart try/catch above. Without
@@ -564,6 +571,9 @@ namespace Content.Server.GameTicking
             foreach ((NetUserId netUserId, (ProtoId<JobPrototype>? job, EntityUid _)) in assignedJobs)
             {
                 if (threatVotePrepared && ThreatSystem.IsThreatJob(job))
+                    continue;
+
+                if (IsSurvivorJob(job)) // CMU14: not spawned yet
                     continue;
 
                 if (readySessions.TryGetValue(netUserId, out ICommonSession? session))
