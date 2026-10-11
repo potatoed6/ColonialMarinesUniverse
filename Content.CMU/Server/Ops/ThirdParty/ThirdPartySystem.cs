@@ -69,6 +69,7 @@ public sealed partial class ThirdPartySystem : EntitySystem
     // --- State for round third party spawning ---
     private ThreatPrototype? _currentThreat;
     private int _nextThirdPartyIndex;
+    private bool _survivorsSpawned;
 
     // --- Signal modifier applied by Ambassador / AI Core consoles ---
     private float _signalIntervalMultiplier = 1f;
@@ -98,6 +99,7 @@ public sealed partial class ThirdPartySystem : EntitySystem
         _scheduledForces.Clear();
         _queuedParties.Clear();
         _automaticForces.Clear();
+        _survivorsSpawned = false;
     }
 
     public override void Update(float frameTime)
@@ -237,6 +239,16 @@ public sealed partial class ThirdPartySystem : EntitySystem
         {
             _sawmill.Error($"[ThirdPartySystem] Spawn called with null spawnProto for party ({party.ID})!");
             return false;
+        }
+
+        if (roundStart && party.AnnounceAsSurvivors)
+        {
+            var rolled = ThirdPartySystem.CountThirdPartyAssignments(assignedJobs);
+            if (rolled.Leaders + rolled.Members == 0)
+            {
+                _sawmill.Debug($"[ThirdPartySystem] No players rolled survivors ({party.ID}); skipping spawn.");
+                return false;
+            }
         }
 
         // Determine entry method. If overrideDropship is provided, it takes precedence (true => shuttle, false =>
@@ -441,6 +453,12 @@ public sealed partial class ThirdPartySystem : EntitySystem
         IReadOnlyDictionary<string, int> gruntBodies = ThirdPartySystem.GetSpawnBodies(
             ThreatMarkerType.Member,
             spawnProto.GruntsToSpawn);
+        if (roundStart && party.AnnounceAsSurvivors)
+        {
+            var rolled = ThirdPartySystem.CountThirdPartyAssignments(assignedJobs);
+            leaderBodies = ThirdPartySystem.TrimBodiesTo(leaderBodies, rolled.Leaders);
+            gruntBodies = ThirdPartySystem.TrimBodiesTo(gruntBodies, rolled.Members);
+        }
         IReadOnlyDictionary<string, int> entityBodies = ThirdPartySystem.GetSpawnBodies(
             ThreatMarkerType.Entity,
             spawnProto.EntitiesToSpawn);
@@ -812,6 +830,22 @@ public sealed partial class ThirdPartySystem : EntitySystem
         return true;
     }
 
+    private static Dictionary<string, int> TrimBodiesTo(IReadOnlyDictionary<string, int> bodies, int limit)
+    {
+        var trimmed = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach ((string proto, int count) in bodies)
+        {
+            var take = Math.Min(count, limit);
+            if (take <= 0)
+                continue;
+
+            trimmed[proto] = take;
+            limit -= take;
+        }
+
+        return trimmed;
+    }
+
     private static IReadOnlyDictionary<string, int> GetSpawnBodies(
         ThreatMarkerType markerType,
         IReadOnlyDictionary<string, int> legacyBodies)
@@ -935,19 +969,7 @@ public sealed partial class ThirdPartySystem : EntitySystem
 
             if (party.RoundStart)
             {
-                if (_automaticForces.ContainsKey(party.ID))
-                    continue;
-
-                _automaticForces.Add(party.ID, 0);
-                try
-                {
-                    SpawnThirdPartyNow(party, spawn, true, assignedJobs, null);
-                }
-                catch (Exception ex)
-                {
-                    _sawmill.Error($"[ThirdPartySystem] Exception spawning roundstart third party ({party.ID}): {ex}");
-                }
-
+                SpawnRoundStartParty(party, spawn, assignedJobs);
                 continue;
             }
 
@@ -1172,4 +1194,34 @@ public sealed partial class ThirdPartySystem : EntitySystem
     }
 
     private readonly record struct ThirdPartyAssignmentCounts(int Leaders, int Members);
+
+    private void SpawnRoundStartParty(ThirdPartyPrototype party, PartySpawnPrototype spawn,
+        Dictionary<NetUserId, (ProtoId<JobPrototype>?, EntityUid)>? assignedJobs)
+    {
+        if (_automaticForces.ContainsKey(party.ID))
+            return;
+
+        if (party.AnnounceAsSurvivors && _survivorsSpawned) // rolled players fill one survivor group
+            return;
+
+        _automaticForces.Add(party.ID, 0);
+        try
+        {
+            if (SpawnThirdPartyNow(party, spawn, true, assignedJobs, null) && party.AnnounceAsSurvivors)
+                _survivorsSpawned = true;
+        }
+        catch (Exception ex)
+        {
+            _sawmill.Error($"[ThirdPartySystem] Exception spawning roundstart third party ({party.ID}): {ex}");
+        }
+    }
+
+    public void SpawnRoundStartThirdParties(Dictionary<NetUserId, (ProtoId<JobPrototype>?, EntityUid)>? assignedJobs)
+    {
+        foreach (var party in _auRoundSystem.SelectedThirdParties)
+        {
+            if (party.RoundStart && _prototypeManager.TryIndex(party.PartySpawn, out var spawn))
+                SpawnRoundStartParty(party, spawn, assignedJobs);
+        }
+    }
 }

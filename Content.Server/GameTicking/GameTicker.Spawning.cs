@@ -460,6 +460,20 @@ namespace Content.Server.GameTicking
 
             RefreshLateJoinAllowed();
 
+            // CMU14: presets that defer the threat to a post-roundstart vote still spawn survivors now,
+            // including when no vote was prepared or the vote failed to start
+            if (usesPostRoundstartThreatVote)
+            {
+                try
+                {
+                    _thirdParty.SpawnRoundStartThirdParties(assignedJobs);
+                }
+                catch (Exception survivorEx)
+                {
+                    Log.Error($"SpawnRoundStartThirdParties threw - round will continue without survivors. {survivorEx}");
+                }
+            }
+            
             switch (threatVotePrepared)
             {
                 // Defensive: same rationale as the SpawnThreatAtRoundStart try/catch above. Without
