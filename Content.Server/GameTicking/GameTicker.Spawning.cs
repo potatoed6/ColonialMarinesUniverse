@@ -578,13 +578,23 @@ namespace Content.Server.GameTicking
                 if (threatVotePrepared && ThreatSystem.IsThreatJob(job))
                     continue;
 
-                if (IsSurvivorJob(job)) // CMU14: not spawned yet
+                if (IsSurvivorJob(job)) // CMU14: not spawned as a placeholder; release anyone the survivor party did not take
+                {
+                    if (readySessions.TryGetValue(netUserId, out ICommonSession? survivorSession)
+                        && survivorSession.AttachedEntity == null)
+                    {
+                        PlayerJoinLobby(survivorSession);
+                        _chatManager.DispatchServerMessage(survivorSession,
+                            Loc.GetString("cmu-survivor-no-body-return-to-lobby"));
+                    }
+
                     continue;
+                }
 
                 if (readySessions.TryGetValue(netUserId, out ICommonSession? session))
                     jobsAssignedList.Add(session);
             }
-
+            
             ICommonSession[] jobsAssignedPlayers = jobsAssignedList.ToArray();
             RaiseLocalEvent(new RulePlayerJobsAssignedEvent(
                 jobsAssignedPlayers,

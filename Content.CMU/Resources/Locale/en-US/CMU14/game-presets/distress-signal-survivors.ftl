@@ -5,3 +5,5 @@ cmu-distress-signal-survivors-spawning =
     }
 
 cmu-distress-signal-no-survivors = No survivors are scheduled to spawn at round start.
+
+cmu-survivor-no-body-return-to-lobby = No survivor slot was available for you. You have been returned to the lobby.
