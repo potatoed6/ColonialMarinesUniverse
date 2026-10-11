@@ -122,6 +122,10 @@ public sealed partial class HiveComponent : Component
     [DataField, AutoNetworkedField]
     public bool BurrowedLarvaEnabled = true; // CMU14
 
+    // CMU14 evolution rush, see EvoRushSystem
+    [DataField, AutoNetworkedField]
+    public bool EvoRush;
+
     [DataField, AutoNetworkedField]
     public int BurrowedLarvaSlotFactor = 0; // CMU14: burrowed larva bank inflated the tier-cap denominator; tier caps count living xenos only
 

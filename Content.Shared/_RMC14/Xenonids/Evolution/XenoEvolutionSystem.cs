@@ -90,6 +90,8 @@ public sealed partial class XenoEvolutionSystem : EntitySystem
 
     private EntityQuery<MobStateComponent> _mobStateQuery;
 
+    private static readonly HashSet<string> EvoRushExcluded = new() { "CMXenoLarva", "CMU14XenoBloodburster" }; // CMU14
+
     public override void Initialize()
     {
         _mobStateQuery = GetEntityQuery<MobStateComponent>();
@@ -1026,6 +1028,16 @@ public sealed partial class XenoEvolutionSystem : EntitySystem
             overrideIgnoresGranter |= comp.IgnoreGranter; // CMU14
         }
 
+        // CMU14 Evo Rush Begin: hives in a rush get a full evolution bar every tick (except excluded castes)
+        HashSet<EntityUid>? rushHives = null;
+        var hiveQuery = EntityQueryEnumerator<HiveComponent>();
+        while (hiveQuery.MoveNext(out var hiveUid, out var hiveComp))
+        {
+            if (hiveComp.EvoRush)
+                (rushHives ??= new()).Add(hiveUid);
+        }
+        // CMU14 End
+
         var evolution = EntityQueryEnumerator<XenoEvolutionComponent>();
         while (evolution.MoveNext(out var uid, out var comp))
         {
@@ -1037,6 +1049,17 @@ public sealed partial class XenoEvolutionSystem : EntitySystem
 
             comp.LastPointsAt = time;
             Dirty(uid, comp);
+            
+            // CMU14: evo rush
+            var inRush = rushHives != null
+                && _xenoHive.GetHive(uid) is { } rushHive
+                && rushHives.Contains(rushHive.Owner);
+            if (inRush
+                && !EvoRushExcluded.Contains(Prototype(uid)?.ID ?? string.Empty)
+                && comp.Points < comp.Max)
+            {
+                SetPoints((uid, comp), comp.Max);
+            }
 
             if (!comp.GotPopup && CanEvolveAny((uid, comp)))
             {
@@ -1070,7 +1093,7 @@ public sealed partial class XenoEvolutionSystem : EntitySystem
 
                 // CMU14: the timed hijack surge also grants evolution without an ovipositor.
                 // if (needsOvipositor && comp.RequiresGranter && !hasGranter)
-                if (needsOvipositor && comp.RequiresGranter && !hasGranter && !overrideIgnoresGranter)
+                if (needsOvipositor && comp.RequiresGranter && !hasGranter && !overrideIgnoresGranter && !inRush) // CMU14
                     continue;
 
                 SetPoints((uid, comp), comp.Points + gain);
