@@ -87,6 +87,7 @@ public sealed class SurvivorSetupSystem : EntitySystem
             if (job == LeaderJob || job == MemberJob)
                 _held[user] = new HeldSurvivor { Leader = job == LeaderJob };
         }
+        Log.Info($"Survivor setup: candidates={_candidates.Count}, held={_held.Count}"); // TEST
 
         if (_held.Count == 0)
             return;

@@ -224,15 +224,15 @@ public static class ThreatVoteSelection
         var assignments = new List<ThreatVoteAssignment>(Math.Max(0, leaderSlots) + Math.Max(0, memberSlots));
         var assigned = new HashSet<NetUserId>();
 
-        AssignJob(ThreatLeaderJobId, leaderSlots);
-        AssignJob(ThreatMemberJobId, memberSlots);
+        var leadersHeld = AssignJob(ThreatLeaderJobId, leaderSlots);
+        AssignJob(ThreatMemberJobId, memberSlots + Math.Max(0, leaderSlots) - leadersHeld); // CMU14: unfilled leader slots go to member volunteers
 
         return assignments;
 
-        void AssignJob(ProtoId<JobPrototype> jobId, int slots)
+        int AssignJob(ProtoId<JobPrototype> jobId, int slots) // CMU14: returns how many players were held
         {
             if (slots <= 0)
-                return;
+                return 0;
 
             IEnumerable<(NetUserId player, int index, JobPriority priority)> candidates = shuffledPlayers
                 .Select((player, index) => (player, index))
@@ -251,11 +251,15 @@ public static class ThreatVoteSelection
                 .ThenBy(candidate => candidate.index)
                 .Take(slots);
 
+            var held = 0; // CMU14
             foreach ((NetUserId player, int index, JobPriority priority) candidate in candidates)
             {
                 assignments.Add(new(candidate.player, jobId));
                 assigned.Add(candidate.player);
+                held++; // CMU14
             }
+
+            return held; // CMU14
         }
     }
 
@@ -303,6 +307,19 @@ public static class ThreatVoteSelection
 
             assignments.Add(new(held.Player, ThreatLeaderJobId));
             assigned.Add(held.Player);
+            assignedLeaders++;
+        }
+
+        // CMU14: leader bodies nobody volunteered for go to held members, so low-pop threats still spawn
+        foreach (ThreatVoteAssignment held in shuffledHeldAssignments)
+        {
+            if (assignedLeaders >= leaderBodies)
+                break;
+
+            if (!assigned.Add(held.Player))
+                continue;
+
+            assignments.Add(new(held.Player, ThreatLeaderJobId));
             assignedLeaders++;
         }
 

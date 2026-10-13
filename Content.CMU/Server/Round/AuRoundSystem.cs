@@ -784,16 +784,24 @@ namespace Content.Server.CMU14.Round
                     : 0;
             }
 
-            // Distress Signal promises survivors: spend the budget on them first so a group is
-            // scheduled whenever the population supports one, then let the weighted lottery fill
-            // whatever capacity is left with the planet's other third parties.
+            // CMU14 Survivors Begin: survivors spawn one body per rolled player, so their roster
+            // is not limited by the population budget; the vote picks between the locked groups.
             List<ThirdPartyPrototype> selected = SelectThirdPartiesWithinBodyBudget(
                 candidates.Where(party => party.RoundStart && party.AnnounceAsSurvivors).ToList(),
-                maxThirdParties,
-                bodyBudget,
+                Math.Max(1, maxThirdParties),
+                int.MaxValue,
                 PickWeightedThirdParty,
-                party => bodyCounts[party],
-                out var selectedBodyCount);
+                _ => 1,
+                out _);
+
+            survivorCount = CalculateAnnouncedSurvivorCount(selected, party => bodyCounts[party]);
+
+            // Survivors take no budget away from the other third parties.
+            foreach (var party in selected)
+            {
+                bodyCounts[party] = 0;
+            }
+            // CMU14 End
 
             selected.AddRange(SelectAdditionalDistressSignalThirdParties(
                 candidates,
@@ -806,15 +814,14 @@ namespace Content.Server.CMU14.Round
                 out var additionalBodyCount));
 
             SetSelectedThirdPartiesInSpawnOrder(selected);
-            survivorCount = CalculateAnnouncedSurvivorCount(selected, party => bodyCounts[party]);
             _state.DistressSignalSurvivorCount = survivorCount;
             _state.DistressSignalThirdPartiesLocked = true;
             _state.DistressSignalThirdPartyFillCompleted = false;
 
             _sawmill.Info(
                 $"[AuRoundSystem] Locked Distress Signal third parties before round start: selected={
-                    selected.Count}, bodies={selectedBodyCount + additionalBodyCount}/{bodyBudget}, survivors={survivorCount}, eligibleThreats=[{
-                        string.Join(", ", eligibleThreatIds)}].");
+                    selected.Count}, bodies={additionalBodyCount}/{bodyBudget}, survivors={survivorCount}, eligibleThreats=[{
+                        string.Join(", ", eligibleThreatIds)}]."); // CMU14
 
             return true;
         }

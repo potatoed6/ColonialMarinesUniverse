@@ -106,6 +106,41 @@ namespace Content.Server.GameTicking
             => (job == AuThirdPartyLeaderJob || job == AuThirdPartyMemberJob)
                 && _auRoundSystem.SelectedThirdParties.Any(party => party.RoundStart && party.AnnounceAsSurvivors);
 
+        // CMU14 method: third-party jobs are not station jobs, so survivors are rolled from profile priorities.
+        // A player rolls survivor when a third-party job is (tied for) their highest priority.
+        private Dictionary<NetUserId, ProtoId<JobPrototype>> TakeSurvivorRollers(
+            Dictionary<NetUserId, HumanoidCharacterProfile> profiles)
+        {
+            var rollers = new Dictionary<NetUserId, ProtoId<JobPrototype>>();
+            if (!_auRoundSystem.SelectedThirdParties.Any(party => party.RoundStart && party.AnnounceAsSurvivors))
+                return rollers;
+
+            var leaderJob = new ProtoId<JobPrototype>(AuThirdPartyLeaderJob);
+            var memberJob = new ProtoId<JobPrototype>(AuThirdPartyMemberJob);
+            foreach (var (user, profile) in profiles)
+            {
+                if (_auJobSelectionSystem.ForcedJobAssignments.ContainsKey(user)) // held for the threat vote
+                    continue;
+
+                var top = JobPriority.Never;
+                foreach (var priority in profile.JobPriorities.Values)
+                {
+                    if (priority > top)
+                        top = priority;
+                }
+
+                if (top == JobPriority.Never)
+                    continue;
+
+                if (profile.JobPriorities.GetValueOrDefault(leaderJob) == top)
+                    rollers[user] = leaderJob;
+                else if (profile.JobPriorities.GetValueOrDefault(memberJob) == top)
+                    rollers[user] = memberJob;
+            }
+
+            return rollers;
+        }
+
         /// <summary>
         ///     Determines which platoon a job belongs to based on its ID.
         ///     Returns null if the job doesn't belong to a specific platoon.
@@ -310,8 +345,25 @@ namespace Content.Server.GameTicking
 
             List<EntityUid> spawnableStations = GetSpawnableStations();
             _sawmill.Debug($"[RoundStart] Found {spawnableStations.Count} spawnable station(s).");
+            // CMU14 Survivors Begin: survivors are kept out of station assignment and added afterwards
+            var survivorRollers = TakeSurvivorRollers(assignmentProfiles);
+            var stationProfiles = survivorRollers.Count == 0
+                ? assignmentProfiles
+                : assignmentProfiles.Where(pair => !survivorRollers.ContainsKey(pair.Key)).ToDictionary();
+
             Dictionary<NetUserId, (ProtoId<JobPrototype>?, EntityUid)> assignedJobs
-                = _stationJobs.AssignJobs(assignmentProfiles, spawnableStations);
+                = _stationJobs.AssignJobs(stationProfiles, spawnableStations);
+
+            foreach (var (user, job) in survivorRollers)
+            {
+                assignedJobs[user] = (job, EntityUid.Invalid);
+            }
+
+            _sawmill.Info($"[RoundStart] survivor rollers: {survivorRollers.Count}"); // TEST
+            // CMU14 End
+
+            // TEST
+            _sawmill.Info($"[RoundStart] assigned: {string.Join(", ", assignedJobs.Select(p => $"{p.Key}={p.Value.Item1?.Id ?? "none"}"))}");
             if (_sawmill.Level <= LogLevel.Debug)
             {
                 AuAssignmentCounts stationAssignmentCounts = GameTicker.CountAuAssignments(assignedJobs);
@@ -421,7 +473,7 @@ namespace Content.Server.GameTicking
                     _chatManager.DispatchServerMessage(playerSession,
                         Loc.GetString("job-not-available-wait-in-lobby"));
                 }
-                else
+                else if (stationJobCounts.ContainsKey(station)) // CMU14: survivors have no station
                     stationJobCounts[station] += 1;
             }
 
@@ -445,11 +497,8 @@ namespace Content.Server.GameTicking
                     continue;
 
                 // CMU14: rolled survivors are spawned by SurvivorSetupSystem after they choose
-                if (job == AuThirdPartyLeaderJob || job == AuThirdPartyMemberJob)
-                {
-                    if (_auRoundSystem.SelectedThirdParties.Any(party => party.RoundStart && party.AnnounceAsSurvivors))
-                        continue;
-                }
+                if (IsSurvivorJob(job))
+                    continue;
 
                 if (job == null)
                     continue;

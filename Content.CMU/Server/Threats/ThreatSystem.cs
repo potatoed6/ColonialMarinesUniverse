@@ -276,7 +276,13 @@ public sealed partial class ThreatSystem : EntitySystem
         }
         else
         {
-            QueueThreat(threat, mapId, assignedJobs, heldPlayers, playerCount: playerCount, playerBudget: playerBudget);
+            // CMU14: held players already consented in the vote, so spawn them straight into the threat bodies
+            // instead of re-asking through force interest
+            if (ExecuteSpawn(threat, mapId, assignedJobs, heldPlayers,
+                    scalingPlayerCount: playerCount, playerBudget: playerBudget))
+            {
+                StartThreatWinConditions(threat);
+            }
         }
     }
 
