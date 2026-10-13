@@ -18,7 +18,7 @@ namespace Content.Server.CMU14.Xenonids.EvoRush;
 /// Distress Signal evolution rush: listed hives can evolve freely until the timer or the marine landing
 /// (plus a short grace period) ends it
 /// </summary>
-public sealed class EvoRushSystem : EntitySystem
+public sealed partial class EvoRushSystem : EntitySystem
 {
     [Dependency] private AuRoundSystem _auRound = default!;
     [Dependency] private IGameTiming _timing = default!;
@@ -49,6 +49,7 @@ public sealed class EvoRushSystem : EntitySystem
         SubscribeLocalEvent<MarinesLandedChangedEvent>(OnMarinesLanded);
         SubscribeLocalEvent<XenoComponent, MobStateChangedEvent>(OnXenoMobStateChanged);
         SubscribeLocalEvent<PlayerAttachedEvent>(OnPlayerAttached);
+        InitializeRoll();
     }
 
     private void OnRoundRestart(RoundRestartCleanupEvent ev)
@@ -57,11 +58,13 @@ public sealed class EvoRushSystem : EntitySystem
         _warned = false;
         _finished = false;
         _nextCheck = TimeSpan.Zero;
+        ResetRoll();
     }
 
     public override void Update(float frameTime)
     {
         UpdatePendingRevives();
+        UpdatePendingRolls();
         if (_finished || _ticker.RunLevel != GameRunLevel.InRound)
             return;
 
@@ -113,6 +116,11 @@ public sealed class EvoRushSystem : EntitySystem
 
         _started = true;
         _endAt = now + Duration;
+        var xenos = EntityQueryEnumerator<XenoComponent, ActorComponent>();
+        while (xenos.MoveNext(out var xenoUid, out _, out var xenoActor))
+        {
+            TryPromptPriorities(xenoUid, xenoActor.PlayerSession);
+        }
     }
 
     private void OnMarinesLanded(ref MarinesLandedChangedEvent ev)
@@ -166,6 +174,12 @@ public sealed class EvoRushSystem : EntitySystem
 
     private void OnPlayerAttached(PlayerAttachedEvent ev)
     {
+        if (HasComp<XenoComponent>(ev.Entity))
+        {
+            TryPromptPriorities(ev.Entity, ev.Player);
+            return;
+        }
+
         if (_pendingRevives.Count == 0
             || !HasComp<GhostComponent>(ev.Entity)
             || !_pendingRevives.Remove(ev.Player.UserId, out var pending))

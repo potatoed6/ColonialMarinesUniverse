@@ -1,0 +1,13 @@
+<controls:FancyWindow xmlns="https://spacestation14.io"
+                      xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
+                      Title="{Loc 'cmu-evo-rush-slot-title'}"
+                      MinSize="320 180">
+    <BoxContainer Orientation="Vertical" Margin="8" SeparationOverride="8">
+        <Label Name="Reel" HorizontalAlignment="Center" StyleClasses="LabelHeading" />
+        <Label Name="Status" HorizontalAlignment="Center" />
+        <BoxContainer Orientation="Horizontal" HorizontalAlignment="Center" SeparationOverride="8">
+            <Button Name="AcceptButton" Text="{Loc 'cmu-evo-rush-slot-accept'}" Disabled="True" />
+            <Button Name="DeclineButton" Text="{Loc 'cmu-evo-rush-slot-decline'}" Disabled="True" />
+        </BoxContainer>
+    </BoxContainer>
+</controls:FancyWindow>

@@ -1,0 +1,12 @@
+<controls:FancyWindow xmlns="https://spacestation14.io"
+                      xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
+                      Title="{Loc 'cmu-evo-rush-priority-title'}"
+                      MinSize="360 320">
+    <BoxContainer Orientation="Vertical" Margin="8" SeparationOverride="6">
+        <Label Text="{Loc 'cmu-evo-rush-priority-help'}" />
+        <ScrollContainer VerticalExpand="True" HScrollEnabled="False">
+            <GridContainer Name="Castes" Columns="2" />
+        </ScrollContainer>
+        <Button Name="SubmitButton" Text="{Loc 'cmu-evo-rush-priority-submit'}" Disabled="True" />
+    </BoxContainer>
+</controls:FancyWindow>

@@ -71,6 +71,10 @@
         type: DialogBui
       enum.BlightCoreUiKey.Vote:
         type: BlightCoreVoteBui
+      enum.EvoRushUiKey.CastePriority:
+        type: EvoRushCastePriorityBui
+      enum.EvoRushUiKey.SlotMachine:
+        type: EvoRushSlotMachineBui
   - type: IntrinsicRadioReceiver
   - type: IntrinsicRadioTransmitter
     channels:

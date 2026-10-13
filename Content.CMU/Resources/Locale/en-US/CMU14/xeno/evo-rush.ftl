@@ -1,3 +1,12 @@
 cmu-evo-rush-start = The hive is in a frenzy! All castes can evolve freely for the next { $minutes } minutes.
 cmu-evo-rush-landing-warning = Hostile dropships have landed. The frenzy is fading, prepare to evolve again!
 cmu-evo-rush-end = The frenzy has ended. Evolution returns to normal.
+cmu-evo-rush-priority-title = Caste preference
+cmu-evo-rush-priority-help = Pick three castes in order. When the frenzy ends, your caste is drawn from these picks.
+cmu-evo-rush-priority-entry = { $rank }. { $caste }
+cmu-evo-rush-priority-submit = Submit
+cmu-evo-rush-slot-title = The hive decides
+cmu-evo-rush-slot-spinning = Rolling...
+cmu-evo-rush-slot-decide = Evolving in { $seconds }s. Decline to return to larva.
+cmu-evo-rush-slot-accept = Evolve
+cmu-evo-rush-slot-decline = Decline

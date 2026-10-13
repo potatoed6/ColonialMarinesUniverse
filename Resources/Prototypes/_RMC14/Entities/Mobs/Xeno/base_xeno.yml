@@ -250,6 +250,10 @@
         requireInputValidation: false
       enum.DialogUiKey.Key:
         type: DialogBui
+      enum.EvoRushUiKey.CastePriority: # CMU14
+        type: EvoRushCastePriorityBui
+      enum.EvoRushUiKey.SlotMachine: # CMU14
+        type: EvoRushSlotMachineBui
   - type: TypingIndicator
     proto: alien
   - type: MovedByPressure
