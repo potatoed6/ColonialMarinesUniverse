@@ -8,6 +8,12 @@ public sealed class SurvivorSetupEui(SurvivorSetupSystem system) : BaseEui
 {
     public override EuiStateBase GetNewState() => system.BuildState(Player.UserId);
 
+    public override void Opened()
+    {
+        base.Opened();
+        StateDirty(); // CMU14: send the initial state, otherwise the window opens empty
+    }
+
     public override void HandleMessage(EuiMessageBase msg)
     {
         base.HandleMessage(msg);

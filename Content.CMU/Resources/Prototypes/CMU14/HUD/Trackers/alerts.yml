@@ -322,3 +322,11 @@
   - sprite: /Textures/_RMC14/Interface/Alerts/marine_tracker.rsi
     state: trackon-southwest_fsl
   description: cmu-alert-tracker-msg-desc
+
+- type: alert
+  id: CMUEvoRush # CMU14
+  icons:
+  - sprite: /Textures/_RMC14/Interface/Alerts/xeno_map.rsi #todo
+    state: open_xeno_map
+  name: cmu-alerts-evo-rush-name
+  description: cmu-alerts-evo-rush-desc
