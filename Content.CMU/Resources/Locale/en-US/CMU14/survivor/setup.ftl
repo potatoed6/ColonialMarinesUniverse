@@ -1,0 +1,12 @@
+cmu-survivor-setup-title = Survivors
+cmu-survivor-setup-vote = Vote for your survivor group
+cmu-survivor-setup-pick = Choose your role and character
+cmu-survivor-setup-time = { $seconds }s remaining
+cmu-survivor-setup-party = { $name } ({ $votes })
+cmu-survivor-setup-mine = > { $text }
+cmu-survivor-setup-roles = Roles
+cmu-survivor-setup-slot-free = { $role }
+cmu-survivor-setup-slot-taken = { $role } - { $player }
+cmu-survivor-setup-character = Character
+cmu-survivor-setup-random = Random character
+cmu-survivor-setup-join-blocked = You are choosing your survivor role. Please wait.

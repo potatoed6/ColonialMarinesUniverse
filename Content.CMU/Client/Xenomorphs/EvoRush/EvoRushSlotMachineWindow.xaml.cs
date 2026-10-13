@@ -5,7 +5,7 @@ using Robust.Client.UserInterface.XAML;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
 
-namespace Content.Client.CMU14.Xenonids.EvoRush;
+namespace Content.Client.CMU14.Xenomorphs.EvoRush;
 
 [GenerateTypedNameReferences]
 public sealed partial class EvoRushSlotMachineWindow : FancyWindow

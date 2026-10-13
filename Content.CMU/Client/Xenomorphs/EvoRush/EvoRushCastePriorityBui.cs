@@ -2,7 +2,7 @@ using Content.Shared.CMU14.Xenonids.EvoRush;
 using JetBrains.Annotations;
 using Robust.Client.UserInterface;
 
-namespace Content.Client.CMU14.Xenonids.EvoRush;
+namespace Content.Client.CMU14.Xenomorphs.EvoRush;
 
 [UsedImplicitly]
 public sealed class EvoRushCastePriorityBui(EntityUid owner, Enum uiKey) : BoundUserInterface(owner, uiKey)

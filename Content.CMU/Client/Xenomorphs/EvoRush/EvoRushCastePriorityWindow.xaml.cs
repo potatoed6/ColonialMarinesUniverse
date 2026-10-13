@@ -6,7 +6,7 @@ using Robust.Client.UserInterface.Controls;
 using Robust.Client.UserInterface.XAML;
 using Robust.Shared.Prototypes;
 
-namespace Content.Client.CMU14.Xenonids.EvoRush;
+namespace Content.Client.CMU14.Xenomorphs.EvoRush;
 
 [GenerateTypedNameReferences]
 public sealed partial class EvoRushCastePriorityWindow : FancyWindow

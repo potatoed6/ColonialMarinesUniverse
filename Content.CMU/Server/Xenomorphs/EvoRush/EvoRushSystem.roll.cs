@@ -9,6 +9,7 @@ using Robust.Shared.Network;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
+using Content.Shared.Prototypes;
 
 namespace Content.Server.CMU14.Xenonids.EvoRush;
 
@@ -55,7 +56,7 @@ public sealed partial class EvoRushSystem
     }
 
     private EntProtoId? GetRoot(EntityUid hive)
-        => HiveRoots.TryGetValue(Prototype(hive)?.ID ?? string.Empty, out var root) ? root : null;
+        => HiveRoots.TryGetValue(Prototype(hive)?.ID ?? string.Empty, out var root) ? root : (EntProtoId?) null;
 
     /// <summary>Castes reachable from the hive's root, excluding the queen, capped and hidden castes.</summary>
     private List<EntProtoId> GetHiveCastes(EntityUid hive)
@@ -269,7 +270,7 @@ public sealed partial class EvoRushSystem
 
         _pendingRolls.Remove(ent.Owner);
         _ui.CloseUi(ent.Owner, EvoRushUiKey.SlotMachine, args.Actor);
-        ApplyRoll(ent.Owner, args.Accept ? pending.Result : null);
+        ApplyRoll(ent.Owner, args.Accept ? pending.Result : (EntProtoId?) null);
     }
 
     private void UpdatePendingRolls()

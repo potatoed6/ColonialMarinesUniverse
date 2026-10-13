@@ -38,6 +38,7 @@ using Robust.Shared.Random;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using ParachuteMarkerComponent = Content.Shared.CMU14.Threats.ParachuteMarkerComponent;
+using Content.Shared.Body; // CMU14
 
 namespace Content.Server.CMU14.Ops.ThirdParty;
 
@@ -61,10 +62,13 @@ public sealed partial class ThirdPartySystem : EntitySystem
     [Dependency] private IGameTiming _timing = default!;
     [Dependency] private RMCMapSystem _rmcMap = default!;
     [Dependency] private SurvivorSupplementSystem _survivorSupplement = default!; // CMU14
+    [Dependency] private HumanoidProfileSystem _humanoidProfile = default!; // CMU14
+    [Dependency] private SharedVisualBodySystem _visualBody = default!; // CMU14
     private static readonly ProtoId<JobPrototype> ThirdPartyLeaderJobId = new("AU14JobThirdPartyLeader");
     private static readonly ProtoId<JobPrototype> ThirdPartyMemberJobId = new("AU14JobThirdPartyMember");
     private static readonly ThreatMarkerType[] ThreatMarkerTypes = Enum.GetValues<ThreatMarkerType>();
     private readonly ISawmill _sawmill = Logger.GetSawmill("thirdparty");
+    public readonly record struct SurvivorAssignment(NetUserId Player, string Body, bool Leader, HumanoidCharacterProfile Profile);
 
     // --- State for round third party spawning ---
     private ThreatPrototype? _currentThreat;
@@ -231,7 +235,8 @@ public sealed partial class ThirdPartySystem : EntitySystem
     }
 
     private bool SpawnThirdPartyNowInner(ThirdPartyPrototype party, PartySpawnPrototype spawnProto, bool roundStart,
-        Dictionary<NetUserId, (ProtoId<JobPrototype>?, EntityUid)>? assignedJobs, bool? overrideDropship)
+        Dictionary<NetUserId, (ProtoId<JobPrototype>?, EntityUid)>? assignedJobs, bool? overrideDropship,
+        IReadOnlyList<SurvivorAssignment>? chosen = null) // CMU14
     {
         const float SpawnTogetherRadius = 8f;
         _sawmill.Debug($"[ThirdPartySystem] Spawning third party: ({party.ID})");
@@ -241,7 +246,7 @@ public sealed partial class ThirdPartySystem : EntitySystem
             return false;
         }
 
-        if (roundStart && party.AnnounceAsSurvivors)
+        if (roundStart && party.AnnounceAsSurvivors && chosen == null) // CMU14
         {
             var rolled = ThirdPartySystem.CountThirdPartyAssignments(assignedJobs);
             if (rolled.Leaders + rolled.Members == 0)
@@ -453,12 +458,19 @@ public sealed partial class ThirdPartySystem : EntitySystem
         IReadOnlyDictionary<string, int> gruntBodies = ThirdPartySystem.GetSpawnBodies(
             ThreatMarkerType.Member,
             spawnProto.GruntsToSpawn);
-        if (roundStart && party.AnnounceAsSurvivors)
+        // CMU14 Survivors Begin: chosen survivors decide the bodies; otherwise one body per rolled player
+        if (chosen != null)
+        {
+            leaderBodies = ThirdPartySystem.CountChosenBodies(chosen, true);
+            gruntBodies = ThirdPartySystem.CountChosenBodies(chosen, false);
+        }
+        else if (roundStart && party.AnnounceAsSurvivors)
         {
             var rolled = ThirdPartySystem.CountThirdPartyAssignments(assignedJobs);
             leaderBodies = ThirdPartySystem.TrimBodiesTo(leaderBodies, rolled.Leaders);
             gruntBodies = ThirdPartySystem.TrimBodiesTo(gruntBodies, rolled.Members);
         }
+        // CMU14 End
         IReadOnlyDictionary<string, int> entityBodies = ThirdPartySystem.GetSpawnBodies(
             ThreatMarkerType.Entity,
             spawnProto.EntitiesToSpawn);
@@ -802,6 +814,9 @@ public sealed partial class ThirdPartySystem : EntitySystem
             foreach (EntityUid survivor in spawnedLeaders.Concat(spawnedGrunts))
                 _survivorSupplement.ApplyToSurvivor(survivor);
         }
+
+        if (chosen != null) // CMU14
+            AssignChosenSurvivors(chosen, spawnedLeaders.Concat(spawnedGrunts));
 
         if (roundStart && assignedJobs != null)
         {
@@ -1220,8 +1235,96 @@ public sealed partial class ThirdPartySystem : EntitySystem
     {
         foreach (var party in _auRoundSystem.SelectedThirdParties)
         {
-            if (party.RoundStart && _prototypeManager.TryIndex(party.PartySpawn, out var spawn))
+            if (party.RoundStart && !party.AnnounceAsSurvivors && _prototypeManager.TryIndex(party.PartySpawn, out var spawn)) // CMU14
                 SpawnRoundStartParty(party, spawn, assignedJobs);
         }
+    }
+
+    // CMU14 method: stops StartThirdPartySpawning from spawning survivors while players are still choosing
+    public void ReserveSurvivorParties()
+    {
+        foreach (var party in _auRoundSystem.SelectedThirdParties)
+        {
+            if (party.RoundStart && party.AnnounceAsSurvivors)
+                _automaticForces.TryAdd(party.ID, 0);
+        }
+    }
+
+    // CMU14 method
+    public bool SpawnChosenSurvivors(ThirdPartyPrototype party, IReadOnlyList<SurvivorAssignment> chosen)
+    {
+        if (!_prototypeManager.TryIndex(party.PartySpawn, out var spawn))
+            return false;
+
+        var spawned = SpawnThirdPartyNowInner(party, spawn, true, null, null, chosen);
+        if (spawned)
+        {
+            _auRoundSystem.MarkThirdPartySpawned(party);
+            _survivorsSpawned = true;
+        }
+
+        return spawned;
+    }
+
+    // CMU14 method
+    private static Dictionary<string, int> CountChosenBodies(IReadOnlyList<SurvivorAssignment> chosen, bool leaders)
+    {
+        var bodies = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var assignment in chosen)
+        {
+            if (assignment.Leader == leaders)
+                bodies[assignment.Body] = bodies.GetValueOrDefault(assignment.Body) + 1;
+        }
+
+        return bodies;
+    }
+
+    // CMU14 method: each body goes to the player who chose its role
+    private void AssignChosenSurvivors(IReadOnlyList<SurvivorAssignment> chosen, IEnumerable<EntityUid> bodies)
+    {
+        var pending = chosen.ToList();
+        foreach (var body in bodies)
+        {
+            var protoId = Prototype(body)?.ID;
+            var index = pending.FindIndex(assignment => string.Equals(assignment.Body, protoId, StringComparison.OrdinalIgnoreCase));
+            if (index < 0)
+                continue;
+
+            var assignment = pending[index];
+            pending.RemoveAt(index);
+            try
+            {
+                AssignSurvivorMind(assignment, body);
+            }
+            catch (Exception ex)
+            {
+                _sawmill.Error($"[ThirdPartySystem] Failed to assign survivor {assignment.Player} to {ToPrettyString(body)}: {ex}");
+            }
+        }
+    }
+
+    // CMU14 method: the body keeps its role gear; the chosen character supplies appearance and name
+    private void AssignSurvivorMind(SurvivorAssignment assignment, EntityUid body)
+    {
+        if (!_playerManager.TryGetSessionById(assignment.Player, out var session))
+            return;
+
+        var mindSystem = _entityManager.System<SharedMindSystem>();
+        var roleSystem = _entityManager.System<SharedRoleSystem>();
+        _entityManager.System<GameTicker>().PlayerJoinGame(session, true);
+
+        var profile = TryComp(body, out HumanoidProfileComponent? humanoid)
+            ? assignment.Profile.WithSpecies(humanoid.Species)
+            : assignment.Profile;
+        _visualBody.ApplyProfileTo(body, profile);
+        _humanoidProfile.ApplyProfileTo(body, profile);
+        ApplyPlayerCharacterName(body, assignment.Profile.Name);
+
+        EntityUid? mind = mindSystem.GetMind(assignment.Player);
+        mind ??= mindSystem.CreateMind(assignment.Player, assignment.Profile.Name);
+        mindSystem.SetUserId(mind.Value, assignment.Player);
+        mindSystem.TransferTo(mind.Value, body);
+        roleSystem.MindAddJobRole(mind.Value, silent: true,
+            jobPrototype: assignment.Leader ? ThirdPartyLeaderJobId.Id : ThirdPartyMemberJobId.Id);
     }
 }

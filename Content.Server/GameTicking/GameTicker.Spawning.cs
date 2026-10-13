@@ -33,6 +33,7 @@ using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
+using Content.Server.CMU14.Survivors.Setup; // CMU14
 
 namespace Content.Server.GameTicking
 {
@@ -50,6 +51,7 @@ namespace Content.Server.GameTicking
         [Dependency] private ThirdPartySystem _thirdParty = default!;
         [Dependency] private AllegianceSystem _allegianceSystem = default!;
         [Dependency] private OriginSystem _originSystem = default!;
+        [Dependency] private SurvivorSetupSystem _survivorSetup = default!; // CMU14
 
         public static readonly EntProtoId ObserverPrototypeName = "MobObserver";
         public static readonly EntProtoId MentorObserverPrototypeName = "MentorObserver";
@@ -479,6 +481,7 @@ namespace Content.Server.GameTicking
                 try
                 {
                     _thirdParty.SpawnRoundStartThirdParties(assignedJobs);
+                    _survivorSetup.Begin(assignedJobs); // CMU14
                 }
                 catch (Exception survivorEx)
                 {
@@ -578,12 +581,12 @@ namespace Content.Server.GameTicking
                 if (threatVotePrepared && ThreatSystem.IsThreatJob(job))
                     continue;
 
-                if (IsSurvivorJob(job)) // CMU14: not spawned as a placeholder; release anyone the survivor party did not take
+                if (IsSurvivorJob(job)) // CMU14: held players are released by SurvivorSetupSystem
                 {
-                    if (readySessions.TryGetValue(netUserId, out ICommonSession? survivorSession)
+                    if (!_survivorSetup.IsHeld(netUserId)
+                        && readySessions.TryGetValue(netUserId, out ICommonSession? survivorSession)
                         && survivorSession.AttachedEntity == null)
                     {
-                        PlayerJoinLobby(survivorSession);
                         _chatManager.DispatchServerMessage(survivorSession,
                             Loc.GetString("cmu-survivor-no-body-return-to-lobby"));
                     }
@@ -642,6 +645,12 @@ namespace Content.Server.GameTicking
 
         private bool IsThreatVoteRoundJoinBlocked(ICommonSession player)
         {
+            if (_survivorSetup.IsHeld(player.UserId)) // CMU14
+            {
+                _chatManager.DispatchServerMessage(player, Loc.GetString("cmu-survivor-setup-join-blocked"));
+                return true;
+            }
+
             if (!_threatVoteSystem.IsRoundJoinBlocked(player.UserId))
                 return false;
 

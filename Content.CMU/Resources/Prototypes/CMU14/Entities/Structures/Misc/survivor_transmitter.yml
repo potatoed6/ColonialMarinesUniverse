@@ -1,0 +1,69 @@
+- type: entity
+  parent: BaseStructure
+  id: CMUSurvivorTransmitter
+  name: improvised transmitter
+  description: A cobbled-together long-range transmitter. It needs power to reach orbit.
+  components:
+  - type: Transform
+    anchored: true
+    noRot: true
+  - type: Clickable
+  - type: InteractionOutline
+  - type: Physics
+    bodyType: Static
+  - type: Fixtures
+    fixtures:
+      fix1:
+        shape:
+          !type:PhysShapeAabb
+          bounds: "-0.4,-0.4,0.4,0.4"
+        density: 190
+        mask:
+        - MachineMask
+  - type: Sprite
+    sprite: _RMC14/Structures/Machines/AIStuff/telecommunication.rsi # TODO: dedicated art
+    layers:
+    - state: relay_off
+  - type: Anchorable
+  - type: SurvivorTransmitter
+  - type: ApcPowerReceiver
+  - type: RMCPowerReceiver
+    idleLoad: 0
+    activeLoad: 500
+    channel: Equipment
+  - type: PowerCellSlot
+    cellSlotId: cell_slot
+  - type: ItemSlots
+    slots:
+      cell_slot:
+        name: power-cell-slot-component-slot-name-default
+  - type: ContainerContainer
+    containers:
+      cell_slot: !type:ContainerSlot
+  - type: Damageable
+    damageModifierSet: null
+  - type: Injurable
+    damageContainer: Inorganic
+  - type: MaxDamage
+    max: 250
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 200
+      behaviors:
+      - !type:PlaySoundBehavior
+        sound:
+          collection: MetalBreak
+      - !type:DoActsBehavior
+        acts: [ "Destruction" ]
+  # tracking is added on the first transmission, see SurvivorTransmitterSystem
+  - type: TacticalMapIcon
+    icon:
+      sprite: /Textures/_RMC14/Interface/map_blips.rsi
+      state: supply
+  - type: TacticalMapAlwaysVisible
+    visibleToGovfor: true
+  - type: Construction
+    graph: CMUSurvivorTransmitter
+    node: transmitter

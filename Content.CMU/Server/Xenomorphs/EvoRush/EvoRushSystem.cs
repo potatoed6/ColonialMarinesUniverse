@@ -47,7 +47,7 @@ public sealed partial class EvoRushSystem : EntitySystem
         base.Initialize();
         SubscribeLocalEvent<RoundRestartCleanupEvent>(OnRoundRestart);
         SubscribeLocalEvent<MarinesLandedChangedEvent>(OnMarinesLanded);
-        SubscribeLocalEvent<XenoComponent, MobStateChangedEvent>(OnXenoMobStateChanged);
+        SubscribeLocalEvent<MobStateChangedEvent>(OnMobStateChanged);
         SubscribeLocalEvent<PlayerAttachedEvent>(OnPlayerAttached);
         InitializeRoll();
     }
@@ -103,9 +103,8 @@ public sealed partial class EvoRushSystem : EntitySystem
             if (!RushHives.Contains(Prototype(uid)?.ID ?? string.Empty))
                 continue;
 
-            hive.EvoRush = true;
-            Dirty(uid, hive);
-            _xenoAnnounce.AnnounceToHive(default, (uid, hive),
+            _xenoHive.SetEvoRush((uid, hive), true);
+            _xenoAnnounce.AnnounceToHive(default, uid,
                 Loc.GetString("cmu-evo-rush-start", ("minutes", (int) Duration.TotalMinutes)));
             started = true;
         }
@@ -135,7 +134,7 @@ public sealed partial class EvoRushSystem : EntitySystem
         while (query.MoveNext(out var uid, out var hive))
         {
             if (hive.EvoRush)
-                _xenoAnnounce.AnnounceToHive(default, (uid, hive), Loc.GetString("cmu-evo-rush-landing-warning"));
+                _xenoAnnounce.AnnounceToHive(default, uid, Loc.GetString("cmu-evo-rush-landing-warning"));
         }
     }
 
@@ -149,9 +148,8 @@ public sealed partial class EvoRushSystem : EntitySystem
             if (!hive.EvoRush)
                 continue;
 
-            hive.EvoRush = false;
-            Dirty(uid, hive);
-            _xenoAnnounce.AnnounceToHive(default, (uid, hive), Loc.GetString("cmu-evo-rush-end"));
+            _xenoHive.SetEvoRush((uid, hive), false);
+            _xenoAnnounce.AnnounceToHive(default, uid, Loc.GetString("cmu-evo-rush-end"));
 
             var ended = new EvoRushEndedEvent(uid);
             RaiseLocalEvent(ref ended);
@@ -159,11 +157,12 @@ public sealed partial class EvoRushSystem : EntitySystem
     }
 
     // CMU14 method: a player xeno dying in a rushing hive gets priority on a burrowed larva
-    private void OnXenoMobStateChanged(Entity<XenoComponent> ent, ref MobStateChangedEvent args)
+    private void OnMobStateChanged(MobStateChangedEvent args)
     {
         if (args.NewMobState != MobState.Dead
-            || !TryComp(ent, out ActorComponent? actor)
-            || _xenoHive.GetHive(ent.Owner) is not { } hive
+            || !HasComp<XenoComponent>(args.Target)
+            || !TryComp(args.Target, out ActorComponent? actor)
+            || _xenoHive.GetHive(args.Target) is not { } hive
             || !hive.Comp.EvoRush)
         {
             return;

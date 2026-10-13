@@ -553,6 +553,16 @@ public abstract partial class SharedXenoHiveSystem : EntitySystem
             Dirty(hive);
     }
 
+    // CMU14 method
+    public void SetEvoRush(Entity<HiveComponent> hive, bool enabled)
+    {
+        if (hive.Comp.EvoRush == enabled)
+            return;
+
+        hive.Comp.EvoRush = enabled;
+        Dirty(hive);
+    }
+
     public bool HasBurrowedLarvaSpawnPoint(Entity<HiveComponent> hive)
     {
         if (!hive.Comp.BurrowedLarvaEnabled) // CMU14
